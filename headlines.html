@@ -121,7 +121,7 @@ async function get_data_to_annotate(number=10){
 
 </head>
 
-<body class="w3-light-grey">
+<body class="w3-light-grey" style="margin-left:5px;">
 
 
 <div class="w3-top w3-black">
@@ -137,11 +137,6 @@ async function get_data_to_annotate(number=10){
 
 <div id="filters" style="display:none;">
 <h4>Filters</h4>
-<button onclick="get_data_to_annotate();">Get Data to Annotate</button>
-
-<button onclick="get_positives_per_year();">Get Positive Samples Per Year</button>
-
-
 Filter terms:<input type="text" id="filter">
 Limit to year:<select id="year">
     <option value=""> none (all years) </option>
@@ -156,10 +151,13 @@ Limit to year:<select id="year">
     <option value="2012">2012</option>
     <option value="2011">2011</option>
 </select>
+<br />
+<button onclick="get_data_to_annotate();">Get Data to Annotate</button>
+
 </div>
 
-<div id="annotation" class="w3-left w3-striped w3-bordered w3-border" style="padding:10px; margin-top:10px; display:none;">
-<h4>Annotate</h4>
+<div id="annotation" class="w3-left w3-striped w3-bordered w3-border" style="background-color:white; padding:10px; margin-top:10px; display:none;">
+<h4>Annotate if part of the label (POS) or not (NEG):</h4>
 
     <div id="message_0"></div>
     <div id="message_1"></div>
@@ -172,6 +170,9 @@ Limit to year:<select id="year">
     <div id="message_8"></div>
     <div id="message_9"></div>
     
+
+<button onclick="get_positives_per_year();">Get Examples Per Year (if model has been trained)</button>
+
 
 </div>
 
