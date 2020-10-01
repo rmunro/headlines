@@ -6,122 +6,44 @@
 
 <style>
 html,body,h1,h2,h3,h4,h5 {font-family: "Raleway", sans-serif}
+.existing_label{text-decoration: underline blue; margin-right:5px; display: inline; background:white;}
+.headline{font-size: 150%; display:block; clear:both; margin-top:10px;}
+.annotation{
+background-color:#DDDDDD; 
+padding:10px; 
+margin-top:10px; 
+border-style: solid;
+border-width: 2px;
+border-color: grey;}
+
+.annotation:hover{
+background-color:#DDDDDD; 
+padding:10px; 
+margin-top:10px; 
+border-style: solid;
+border-width: 4px;
+border-color: blue;
+}
+
+.annotation_focused{
+background-color:white; 
+padding:10px; 
+margin-top:10px; 
+border-style: solid;
+border-width: 4px;
+border-color: black;
+}
+
+
+
 </style>
 
 <script type='text/javascript' src='/eel.js'></script>
 <script type='text/javascript' src='/headlines.js'></script>
 
-<!--
-
-        
-async function create_label(){
-    
-    let label = document.getElementById('label').value;
-
-    label_div = document.getElementById('label_message');
-    label_div.innerHTML = "loading...";
-    
-    let success = await eel.create_label(label)(); // Call to python function
-
-    if(success){
-        label_div.innerHTML = "Label: "+label;
-        document.getElementById('label').style.display = "none";
-        document.getElementById('label_button').style.display = "none";
-        
-        document.getElementById('filters').style.display = "block";
-    }
-    else{
-        label_div.innerHTML = "Invalid label name: only letters, numbers, space, hyphen, and underscore are permitted";        
-    }
-}
-       
-       
-async function add_annotation(index, positive=true){
-    fields = data[index]
-    console.log(index)
-    console.log(fields)
-
-    let message = await eel.add_annotation(fields, positive)(); // Call to python function
-    
-}       
-
-
- 
-async function get_positives_per_year(){
-    let samples = await eel.get_positives_per_year()(); 
-    console.log(samples);
-    var count = 0;
-    for (var year in samples) {
-        console.log(year);
-        headlines = samples[year];
-        div_id = 'year_'+year;
-        year_div = document.getElementById(div_id);
-        year_div.innerHTML = '<h4>'+year+'</h4>';
-        console.log(headlines);
-        
-        for(var headline_key in headlines){
-            headline_details = headlines[headline_key];
-            console.log(headline_details);
-            headline = headline_details[1];
-            url = headline_details[2];
-            // year_div.innerHTML += '<a href="'+url+'" target="_blank">'+headline+'</a><br />';
-            
-            var link = document.createElement("a");   
-            link.setAttribute('href', url);
-            link.setAttribute('target', '_blank');
-            link.setAttribute('style', 'display:block; clear:left;');
-            link.innerText = headline;
-            year_div.append(link);   
-            count++; 
-        }
-    }
-    
-    if(count > 0){
-        document.getElementById('examples').style.display = "block";
-    }
-}
-
-
-var data = []
- 
-async function get_data_to_annotate(number=10){
-    filter = document.getElementById("filter").value;
-    console.log(filter)
-    year = document.getElementById("year").value;
-    console.log(year)
-    
-    data = await eel.get_data_to_annotate(number, filter, year)(); // Call to python function
-    
-    var i ;
-    var tabindex = 1
-    for(i=0; i <= 9; i++){
-        message_id = "message_".concat(i.toString());
-        message_div = document.getElementById(message_id);
-        
-        button_pos = '<button onclick="add_annotation('+i.toString()+');" tabindex="'+(tabindex++).toString()+'" >POS</button>';
-        button_neg = '<button onclick="add_annotation('+i.toString()+',false);" tabindex="'+(tabindex++).toString()+'" >NEG</button>';
-        
-        console.log(i);
-        if (data[i] === undefined){
-            message_div.innerHTML = ""; // there were less than 10 results
-        }
-        else{
-            headline = data[i][1];
-            // TODO: add link?
-            message_div.innerHTML = button_pos + button_neg +" " + headline;                
-        }
-    }
-    
-    document.getElementById('annotation').style.display = "block";
-
-}
-        
-        
--->
-
 </head>
 
-<body class="w3-light-grey" style="margin-left:5px;">
+<body class="w3-light-grey" style="margin-left:5px;" onload="get_existing_labels()">
 
 
 <div class="w3-top w3-black">
@@ -132,13 +54,14 @@ async function get_data_to_annotate(number=10){
 <div class="w3-main" style="margin-left:10px;margin-top:40px;">
 
         
-<h5><div id='label_message'></div><input type="text" id='label' style="margin-left:10px;" /><button onclick="create_label();" id="label_button">Switch/Create New label</button></h5>
-
+<h5><div id='label_message'></div><input type="text" id='label' style="margin-left:10px;" />
+<button onclick="create_label();" id="label_button">Create new label:</button>
+<div id="prior_labels">Or select from existing labels (if any): <div id="existing_labels"></div></div></h5>
 
 <div id="filters" style="display:none;">
 <h4>Filters</h4>
-Filter terms:<input type="text" id="filter">
-Limit to year:<select id="year">
+<label for="filter">Filter terms:</label> <input type="text" id="filter" name ="filter" placeholder="(Optional) limit to headlines containing string">
+<label for="year">Limit to year:</labal> <select id="year" name="year">
     <option value=""> none (all years) </option>
     <option value="2020">2020</option>
     <option value="2019">2019</option>
@@ -150,34 +73,30 @@ Limit to year:<select id="year">
     <option value="2013">2013</option>
     <option value="2012">2012</option>
     <option value="2011">2011</option>
-</select>
+</select> 
+<input type="checkbox" id="uncertainty" name="uncertainty" value="uncertainty">
+<label for="uncertainty">Focus on model uncertainty (if available)</label><br />
+
+<!--
+<button onclick="get_data_to_annotate();">Apply Filters</button>
+-->
+
+</div>
+
+<div id="annotation" class="annotation" style="display:none;">
+<div id="instructions"></div>
+<div id="headline" class="headline"></div>
+
+ 
+</div>
 <br />
-<button onclick="get_data_to_annotate();">Get Data to Annotate</button>
-
-</div>
-
-<div id="annotation" class="w3-left w3-striped w3-bordered w3-border" style="background-color:white; padding:10px; margin-top:10px; display:none;">
-<h4>Annotate if part of the label (POS) or not (NEG):</h4>
-
-    <div id="message_0"></div>
-    <div id="message_1"></div>
-    <div id="message_2"></div>
-    <div id="message_3"></div>
-    <div id="message_4"></div>
-    <div id="message_5"></div>
-    <div id="message_6"></div>
-    <div id="message_7"></div>
-    <div id="message_8"></div>
-    <div id="message_9"></div>
-    
-
-<button onclick="get_positives_per_year();">Get Examples Per Year (if model has been trained)</button>
-
-
-</div>
-
 <div id="examples" class="w3-container" style="margin-top:10px; display:none;">
-<h4>Examples</h4>
+<button onclick="save_current_predictions();" id="show_examples" name="show_examples">Save Predictions</button>
+<label for="show_examples">Save predictions from current model (if model available)</label>
+<br /><br />
+<button onclick="get_positives_per_year();" id="show_examples" name="show_examples">Show Examples</button>
+<label for="show_examples">Show examples of relevant headlines by year (if model available)</label>
+<h4>Headlines by year</h4>
 
 <div class="w3-left w3-striped w3-bordered w3-border" style="padding:10px; margin:5px;" id="year_2020">
 </div>
