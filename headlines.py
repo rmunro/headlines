@@ -1,9 +1,11 @@
-import eel, os, random, sys, re
+import eel
+import os
+import random
+import re
 import time
 import gzip
 import csv
 import hashlib
-import math
 import datetime
 import shutil
 from random import shuffle
@@ -63,7 +65,7 @@ def tag_as_interesting(item):
 
 
 @eel.expose
-def add_annotation(item, positive=True, evaluation=False):
+def add_annotation(item, positive=True):
     '''Record an annotation 
     
        The annotation is saved to file and the current model is 
@@ -175,6 +177,12 @@ def get_data_to_annotate(num=1, filter="", year="", uncertainty=False):
     global predicted_confs
     global all_predicted_confs
         
+        
+
+    if random.randint(0,99) == 0:
+        # random re-shuffle every 100th annotation
+        random.shuffle(unlabeled_data) 
+
     sample_data = unlabeled_data
         
     if uncertainty:
@@ -186,18 +194,15 @@ def get_data_to_annotate(num=1, filter="", year="", uncertainty=False):
         # try most recent model, then all models, then all items
         
         sample_data = predicted_confs + all_predicted_confs + unlabeled_data
-    elif random.randint(0,99) == 0:
-        # random re-shuffle every 100th annotation
-        random.shuffle(unlabeled_data) 
+    
     
     newdata = []
-    for item in unlabeled_data:
+    for item in sample_data:
         date = item[0]
         item_year = date[:4]
-        headline = item[1]
-        is_evaluation(headline)
-        
+        headline = item[1]        
         url = item[2]
+        
         if url in labeled_urls:
             continue
             
@@ -208,8 +213,7 @@ def get_data_to_annotate(num=1, filter="", year="", uncertainty=False):
             continue
         if year != "" and year != item_year:
             continue
-        
-        
+                
         strategies = []
         if filter == "" and not uncertainty:
             strategies.append("Random")
@@ -228,6 +232,7 @@ def get_data_to_annotate(num=1, filter="", year="", uncertainty=False):
         item[3] = sampling_strategy
             
         newdata.append(item)
+        
         if len(newdata) == num:
             break
     
@@ -277,10 +282,9 @@ def evaluate_item(model, inputs):
     '''Predict single item
     '''
     with torch.no_grad():
-        outputs = model(**inputs) #, labels=labels)   
+        outputs = model(**inputs)   
         logits = outputs[0][0]
         conf = torch.softmax(logits, dim=0)
-        # print(conf)
         return conf
 
 
@@ -404,7 +408,7 @@ def retrain(filepath, epochs_per_item=2, min_to_train=10):
         negative_labels = torch.tensor([0]).unsqueeze(0)  
                    
         train_item(new_model, negative_inputs, negative_labels)
-        # print("."+str(i)+" of "+str(iterations))
+
         eel.sleep(0.01) # allow other processes through
  
     new_fscore = evaluate_model(new_model)
@@ -464,7 +468,6 @@ def load_existing_model():
             print("Loading model from "+model_path)
         current_model = DistilBertForSequenceClassification.from_pretrained(model_path)
         eel.sleep(0.1)
-        # get_predictions()
     else:
         if verbose:
             print("Creating new uninitialized model (OK to ignore warnings)")
@@ -545,8 +548,8 @@ def get_predictions(max_per_year = 1000, earliest_year="2011", savepath=""):
         
     predicted_confs = new_predicted_confs # update most recent
 
-    predicted_confs.sort(reverse=True, key=lambda x: x[5]) # TODO: RIGHT 
-    all_predicted_confs.sort(reverse=True, key=lambda x: x[5]) # TODO: RIGHT 
+    predicted_confs.sort(reverse=True, key=lambda x: x[5]) 
+    all_predicted_confs.sort(reverse=True, key=lambda x: x[5])  
     
     return new_predicted_confs
 
@@ -584,9 +587,7 @@ def get_positives_per_year(num=10, threshold=0.6, earliest_year="2011"):
                 confident_items_by_year[year] = [item]
             else:
                 confident_items_by_year[year].append(item)
-            #print("conf good")
-        # else:
-            # print("conf too low")
+
         
     for year in confident_items_by_year:
         items = confident_items_by_year[year]
@@ -611,13 +612,9 @@ def check_to_train():
         
         ct = time.time()       
         if currently_training or annotation_count == 0 or ct - last_annotation < 20:
-            # print("No new annotations or annotation within 20 seconds")
-            # print(ct - last_annotation)
             eel.sleep(10)   
             continue
-            # more than 20 seconds since last annotation was added
         
-        # (re)retrain model! 
         
         annotation_count = 0 # reset counter for annotations
         
@@ -637,7 +634,6 @@ unlabeled_file = gzip.open(unlabeled_data_path, mode='rt')
 csvobj = csv.reader(unlabeled_file,delimiter = ',',quotechar='"')
 for row in csvobj:
     unlabeled_data.append(row)
-    # print(row[0])
 random.shuffle(unlabeled_data)
 
 eel.start('headlines.html', size=(800, 600))
