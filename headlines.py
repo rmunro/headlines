@@ -489,7 +489,7 @@ def get_predictions(max_per_year = 1000, earliest_year="2011", savepath=""):
     global unlabeled_data
     global current_model
     global predicted_confs
-    global all_predited_confs
+    global all_predicted_confs
     
     if verbose:
         print("Getting predictions")
